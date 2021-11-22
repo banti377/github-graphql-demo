@@ -1,13 +1,13 @@
 import { useQuery } from "@apollo/client";
-import { List, Space, Spin } from "antd";
-import React, { useContext, useState } from "react";
+import { Button, List, Space, Spin } from "antd";
+import React, { useReducer, useContext } from "react";
 import { FC } from "react";
 import { EyeOutlined, StarOutlined } from "@ant-design/icons";
 
 import { GET_REPOSITORIES } from "../graphql/Query";
 import { useNavigate } from "react-router-dom";
 import { StateContext } from "../context/State";
-import Pagination from "../components/Pagination";
+import paginationReducer, { initialState } from "../reducers/pagination.reducer";
 
 const { Item } = List;
 
@@ -20,45 +20,31 @@ const IconText = ({ icon, text }: { icon: any; text: string }) => (
 
 const RepositoryList: FC = () => {
   const { user, setRepoId, setRepo } = useContext(StateContext);
-
-  const [after, setAfter] = useState<string | null>(null);
-  const [before, setBefore] = useState<string | null>(null);
-
-  console.log({ user });
-
   const navigate = useNavigate();
+
+  const [repoPagiantion, repoPaginationDispatch] = useReducer(paginationReducer, initialState);
 
   const {
     data: repositoryList,
     loading: repositoryLoading,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     refetch: refetchRepositories,
   } = useQuery(GET_REPOSITORIES, {
     variables: {
       login: user,
-      first: 10,
-      after,
-      before,
+      first: repoPagiantion.first,
+      after: repoPagiantion.after,
+      before: repoPagiantion.before,
+      last: repoPagiantion.last,
     },
   });
-
-  const onPrevClick = () => {
-    setBefore(repositoryList?.user?.repositories?.pageInfo?.startCursor);
-    setAfter(null);
-    refetchRepositories();
-  };
-
-  const onNextClick = () => {
-    setBefore(null);
-    setAfter(repositoryList?.user?.repositories?.pageInfo?.endCursor);
-    refetchRepositories();
-  };
 
   if (repositoryLoading) {
     return <Spin />;
   }
 
   return (
-    <>
+    <div>
       <List
         header={<div>Repositories</div>}
         dataSource={repositoryList?.user.repositories.nodes}
@@ -87,14 +73,33 @@ const RepositoryList: FC = () => {
           </Item>
         )}
       />
-      {repositoryList?.user.repositories.nodes && (
-        <Pagination
-          onNextClick={onNextClick}
-          onPrevClick={onPrevClick}
-          pageInfo={repositoryList?.user?.repositories?.pageInfo}
-        />
-      )}
-    </>
+      <Button
+        disabled={!repositoryList.user.repositories.pageInfo.hasPreviousPage}
+        onClick={() => {
+          repoPaginationDispatch({
+            type: 'prev',
+            payload: {
+              before: repositoryList.user.repositories.pageInfo.startCursor,
+            },
+          });
+        }}
+      >
+        Prev
+      </Button>
+      <Button
+        disabled={!repositoryList.user.repositories.pageInfo.hasNextPage}
+        onClick={() => {
+          repoPaginationDispatch({
+            type: 'next',
+            payload: {
+              after: repositoryList.user.repositories.pageInfo.endCursor,
+            },
+          });
+        }}
+      >
+        Next
+      </Button>
+    </div>
   );
 };
 

@@ -2,24 +2,24 @@ import { PlusOutlined } from "@ant-design/icons";
 import { useMutation, useQuery } from "@apollo/client";
 import { Button, Form, List, Spin } from "antd";
 import moment from "moment";
-import { useContext, useState } from "react";
+import { useContext, useReducer, useState } from "react";
 import { FC } from "react";
 import { StateContext } from "../context/State";
 import { CREATE_ISSUE } from "../graphql/Mutation";
 import { GET_ISSUES } from "../graphql/Query";
-import Pagination from "../components/Pagination";
 import CreateIssue from "../components/CreateIssue";
 import { IITem } from "../interfaces";
+import paginationReducer, { initialState } from "../reducers/pagination.reducer";
 
 const { Item } = List;
 
 const Issues: FC = () => {
   const { repo, user, repoId } = useContext(StateContext);
 
+
+  const [issuePagination, issuePaginationDispatch] = useReducer(paginationReducer, initialState);
   const [form] = Form.useForm();
 
-  const [after, setAfter] = useState<string | null>(null);
-  const [before, setBefore] = useState<string | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
 
   const {
@@ -30,9 +30,10 @@ const Issues: FC = () => {
     variables: {
       name: repo,
       owner: user,
-      first: 10,
-      after,
-      before,
+      first: issuePagination.first,
+      after: issuePagination.after,
+      before: issuePagination.before,
+      last: issuePagination.last,
     },
   });
 
@@ -61,18 +62,6 @@ const Issues: FC = () => {
     setIsModalVisible(false);
   };
 
-  const onPrevClick = () => {
-    setBefore(issueList?.repository?.issues?.pageInfo?.startCursor);
-    setAfter(null);
-    refetchIssues();
-  };
-
-  const onNextClick = () => {
-    setBefore(null);
-    setAfter(issueList?.repository?.issues?.pageInfo?.endCursor);
-    refetchIssues();
-  };
-
   if (issueLoading) {
     return <Spin />;
   }
@@ -97,13 +86,32 @@ const Issues: FC = () => {
           </Item>
         )}
       />
-      {issueList?.repository?.issues?.nodes && (
-        <Pagination
-          onNextClick={onNextClick}
-          onPrevClick={onPrevClick}
-          pageInfo={issueList?.repository?.issues?.pageInfo}
-        />
-      )}
+      <Button
+        disabled={!issueList.repository.issues.pageInfo.hasPreviousPage}
+        onClick={() => {
+          issuePaginationDispatch({
+            type: 'prev',
+            payload: {
+              before: issueList.repository.issues.pageInfo.startCursor,
+            },
+          });
+        }}
+      >
+        Prev
+      </Button>
+      <Button
+        disabled={!issueList.repository.issues.pageInfo.hasNextPage}
+        onClick={() => {
+          issuePaginationDispatch({
+            type: 'next',
+            payload: {
+              after: issueList.repository.issues.pageInfo.endCursor,
+            },
+          });
+        }}
+      >
+        Next
+      </Button>
       <CreateIssue
         isModalVisible={isModalVisible}
         handleCancel={handleCancel}

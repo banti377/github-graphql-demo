@@ -1,19 +1,19 @@
 import { useLazyQuery } from "@apollo/client";
-import { FC, useContext, useEffect, useState } from "react";
+import { FC, useContext, useEffect, useReducer, useState } from "react";
 import { Spin } from "antd";
 import { SEARCH_USER } from "../graphql/Query";
 import RepositoryList from "../components/RepositoryList";
 import SearchBar from "../components/SearchBar";
 import UserList from "../components/UserList";
 import { StateContext } from "../context/State";
-import Pagination from "../components/Pagination";
+import paginationReducer, { initialState } from "../reducers/pagination.reducer";
 
 const Home: FC = () => {
   const { user, setUser } = useContext(StateContext);
 
+  const [userPagination, userPaginationDispatch] = useReducer(paginationReducer, initialState);
+
   const [searchTerm, setSearchTerm] = useState("");
-  const [after, setAfter] = useState<string | null>(null);
-  const [before, setBefore] = useState<string | null>(null);
 
   const [searchUser, { data: userData, loading: userLoading }] = useLazyQuery(
     SEARCH_USER,
@@ -21,24 +21,13 @@ const Home: FC = () => {
       variables: {
         query: searchTerm,
         type: "USER",
-        first: 5,
-        after,
-        before,
+        first: userPagination.first,
+        last: userPagination.last,
+        after: userPagination.after,
+        before: userPagination.before,
       },
     }
   );
-
-  const onPrevClick = () => {
-    setBefore(userData?.search?.pageInfo?.startCursor);
-    setAfter(null);
-    searchUser();
-  };
-
-  const onNextClick = () => {
-    setAfter(userData?.search?.pageInfo?.endCursor);
-    setBefore(null);
-    searchUser();
-  };
 
   useEffect(() => {
     if (searchTerm) {
@@ -48,16 +37,35 @@ const Home: FC = () => {
 
   return (
     <div>
-      <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
+      <SearchBar
+        searchTerm={searchTerm}
+        setSearchTerm={(search) => {
+          // When search changes move user to page 1.
+          userPaginationDispatch({ type: 'reset' });
+          setSearchTerm(search);
+        }}
+      />
       {userLoading && <Spin />}
       {userData && !userLoading && (
-        <UserList setUser={setUser} userData={userData || []} />
-      )}
-      {userData && (
-        <Pagination
-          onNextClick={onNextClick}
-          onPrevClick={onPrevClick}
-          pageInfo={userData?.search?.pageInfo}
+        <UserList
+          setUser={setUser}
+          userData={userData || []}
+          onPrev={() => {
+            userPaginationDispatch({
+              type: 'prev',
+              payload: {
+                before: userData.search.pageInfo.startCursor
+              }
+            });
+          }}
+          onNext={() => {
+            userPaginationDispatch({
+              type: 'next',
+              payload: {
+                after: userData.search.pageInfo.endCursor
+              }
+            });
+          }}
         />
       )}
       {user && <RepositoryList />}
