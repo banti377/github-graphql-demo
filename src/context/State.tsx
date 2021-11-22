@@ -6,6 +6,8 @@ const initialState = {
   setUser: (user: string) => {},
   repo: "",
   setRepo: (repo: string) => {},
+  repoId: "",
+  setRepoId: (repoId: string) => {},
 };
 
 export const StateContext = createContext(initialState);
@@ -16,6 +18,8 @@ const authReducer = (state: IInitialState, action: Action): IInitialState => {
       return { ...state, user: action.payload };
     case "repo":
       return { ...state, repo: action.payload };
+    case "repoId":
+      return { ...state, repoId: action.payload };
     default:
       return state;
   }
@@ -28,9 +32,19 @@ export const StateProvider: FC = (props) => {
 
   const setRepo = (repo: string) => dispatch({ type: "repo", payload: repo });
 
+  const setRepoId = (repoId: string) =>
+    dispatch({ type: "repoId", payload: repoId });
+
   return (
     <StateContext.Provider
-      value={{ user: state.user, repo: state.repo, setUser, setRepo }}
+      value={{
+        user: state.user,
+        repo: state.repo,
+        repoId: state.repoId,
+        setUser,
+        setRepo,
+        setRepoId,
+      }}
       {...props}
     />
   );

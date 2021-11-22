@@ -3,6 +3,16 @@ export interface IInitialState {
   setUser: (user: string) => void;
   repo: string;
   setRepo: (repo: string) => void;
+  repoId: string;
+  setRepoId: (repoId: string) => void;
+}
+
+export interface IITem {
+  title: string;
+  createdAt: Date;
+  author: {
+    login: string;
+  };
 }
 
 interface IUserAction {
@@ -15,4 +25,9 @@ interface IRepoAction {
   payload: string;
 }
 
-export type Action = IUserAction | IRepoAction;
+interface IRepoIdAction {
+  type: "repoId";
+  payload: string;
+}
+
+export type Action = IUserAction | IRepoAction | IRepoIdAction;

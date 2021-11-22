@@ -1,4 +1,4 @@
-import { FC, useState } from "react";
+import { FC } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { StateProvider } from "./context/State";
 import Home from "./pages/Home";

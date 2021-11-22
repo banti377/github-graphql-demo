@@ -1,18 +1,15 @@
 import { useQuery } from "@apollo/client";
 import { List, Space, Spin } from "antd";
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { FC } from "react";
 import { EyeOutlined, StarOutlined } from "@ant-design/icons";
 
 import { GET_REPOSITORIES } from "../graphql/Query";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
+import { StateContext } from "../context/State";
+import Pagination from "../components/Pagination";
 
 const { Item } = List;
-
-interface Props {
-  user: string;
-  setRepo: (repo: string) => void;
-}
 
 const IconText = ({ icon, text }: { icon: any; text: string }) => (
   <Space align="end">
@@ -21,8 +18,9 @@ const IconText = ({ icon, text }: { icon: any; text: string }) => (
   </Space>
 );
 
-const RepositoryList: FC<Props> = ({ user, setRepo }) => {
-  const [currentPage, setCurrentPage] = useState(1);
+const RepositoryList: FC = () => {
+  const { user, setRepoId, setRepo } = useContext(StateContext);
+
   const [after, setAfter] = useState<string | null>(null);
   const [before, setBefore] = useState<string | null>(null);
 
@@ -43,57 +41,60 @@ const RepositoryList: FC<Props> = ({ user, setRepo }) => {
     },
   });
 
+  const onPrevClick = () => {
+    setBefore(repositoryList?.user?.repositories?.pageInfo?.startCursor);
+    setAfter(null);
+    refetchRepositories();
+  };
+
+  const onNextClick = () => {
+    setBefore(null);
+    setAfter(repositoryList?.user?.repositories?.pageInfo?.endCursor);
+    refetchRepositories();
+  };
+
   if (repositoryLoading) {
     return <Spin />;
   }
 
   return (
-    <List
-      header={<div>Repositories</div>}
-      pagination={{
-        current: currentPage,
-        total: repositoryList?.user?.repositories?.totalCount,
-        onChange: (page) => {
-          if (page < currentPage) {
-            setBefore(
-              repositoryList?.user?.repositories?.pageInfo?.startCursor
-            );
-            setAfter(null);
-          }
-          if (page > currentPage) {
-            setBefore(null);
-            setAfter(repositoryList?.user?.repositories?.pageInfo?.endCursor);
-          }
-          setCurrentPage(page);
-          refetchRepositories();
-        },
-        pageSize: 10,
-      }}
-      dataSource={repositoryList?.user.repositories.nodes}
-      renderItem={(item: any) => (
-        <Item
-          onClick={() => {
-            setRepo(item.name);
-            navigate("/issues");
-          }}
-          key={item.name}
-          actions={[
-            <IconText
-              icon={StarOutlined}
-              text={item?.stargazerCount}
-              key="list-vertical-star-o"
-            />,
-            <IconText
-              icon={EyeOutlined}
-              text={item?.watchers?.totalCount}
-              key="list-vertical-like-o"
-            />,
-          ]}
-        >
-          {item.name}
-        </Item>
+    <>
+      <List
+        header={<div>Repositories</div>}
+        dataSource={repositoryList?.user.repositories.nodes}
+        renderItem={(item: any) => (
+          <Item
+            onClick={() => {
+              setRepo(item.name);
+              setRepoId(item.id);
+              navigate("/issues");
+            }}
+            key={item.name}
+            actions={[
+              <IconText
+                icon={StarOutlined}
+                text={item?.stargazerCount}
+                key="list-vertical-star-o"
+              />,
+              <IconText
+                icon={EyeOutlined}
+                text={item?.watchers?.totalCount}
+                key="list-vertical-like-o"
+              />,
+            ]}
+          >
+            {item.name}
+          </Item>
+        )}
+      />
+      {repositoryList?.user.repositories.nodes && (
+        <Pagination
+          onNextClick={onNextClick}
+          onPrevClick={onPrevClick}
+          pageInfo={repositoryList?.user?.repositories?.pageInfo}
+        />
       )}
-    />
+    </>
   );
 };
 

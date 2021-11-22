@@ -1,17 +1,17 @@
 import { useLazyQuery } from "@apollo/client";
 import { FC, useContext, useEffect, useState } from "react";
-import { Pagination, Spin } from "antd";
+import { Spin } from "antd";
 import { SEARCH_USER } from "../graphql/Query";
 import RepositoryList from "../components/RepositoryList";
 import SearchBar from "../components/SearchBar";
 import UserList from "../components/UserList";
 import { StateContext } from "../context/State";
+import Pagination from "../components/Pagination";
 
 const Home: FC = () => {
-  const { user, setUser, setRepo } = useContext(StateContext);
+  const { user, setUser } = useContext(StateContext);
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
   const [after, setAfter] = useState<string | null>(null);
   const [before, setBefore] = useState<string | null>(null);
 
@@ -28,17 +28,15 @@ const Home: FC = () => {
     }
   );
 
-  const onPageChange = (page: number) => {
-    console.log(currentPage, page);
-    if (page > currentPage) {
-      setAfter(userData?.search?.pageInfo?.endCursor);
-      setBefore(null);
-    }
-    if (page <= currentPage) {
-      setBefore(userData?.search?.pageInfo?.startCursor);
-      setAfter(null);
-    }
-    setCurrentPage(page);
+  const onPrevClick = () => {
+    setBefore(userData?.search?.pageInfo?.startCursor);
+    setAfter(null);
+    searchUser();
+  };
+
+  const onNextClick = () => {
+    setAfter(userData?.search?.pageInfo?.endCursor);
+    setBefore(null);
     searchUser();
   };
 
@@ -57,14 +55,12 @@ const Home: FC = () => {
       )}
       {userData && (
         <Pagination
-          pageSize={5}
-          current={currentPage}
-          onChange={onPageChange}
-          total={userData?.search?.userCount}
-          showSizeChanger={false}
+          onNextClick={onNextClick}
+          onPrevClick={onPrevClick}
+          pageInfo={userData?.search?.pageInfo}
         />
       )}
-      {user && <RepositoryList user={user} setRepo={setRepo} />}
+      {user && <RepositoryList />}
     </div>
   );
 };

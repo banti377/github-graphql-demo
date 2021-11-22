@@ -54,6 +54,7 @@ export const GET_REPOSITORIES = gql`
         }
         nodes {
           ... on Repository {
+            id
             name
             stargazerCount
             watchers {
@@ -68,8 +69,8 @@ export const GET_REPOSITORIES = gql`
 
 export const GET_ISSUES = gql`
   query GetIssues(
-    $name: String
-    $owner: String
+    $name: String!
+    $owner: String!
     $first: Int
     $after: String
     $before: String
