@@ -35,3 +35,62 @@ export const SEARCH_USER = gql`
     }
   }
 `;
+
+export const GET_REPOSITORIES = gql`
+  query GetRepositories(
+    $login: String!
+    $first: Int
+    $after: String
+    $before: String
+  ) {
+    user(login: $login) {
+      repositories(first: $first, after: $after, before: $before) {
+        totalCount
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          endCursor
+          startCursor
+        }
+        nodes {
+          ... on Repository {
+            name
+            stargazerCount
+            watchers {
+              totalCount
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+export const GET_ISSUES = gql`
+  query GetIssues(
+    $name: String
+    $owner: String
+    $first: Int
+    $after: String
+    $before: String
+  ) {
+    repository(name: $name, owner: $owner) {
+      issues(first: $first, after: $after, before: $before) {
+        totalCount
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          endCursor
+          startCursor
+        }
+        nodes {
+          title
+          createdAt
+          author {
+            login
+          }
+        }
+      }
+    }
+  }
+`;
