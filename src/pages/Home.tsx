@@ -1,6 +1,7 @@
+import { FC, useContext, useEffect, useMemo, useReducer, useState } from "react";
 import { useLazyQuery } from "@apollo/client";
-import { FC, useContext, useEffect, useReducer, useState } from "react";
 import { Spin } from "antd";
+import debounce from "lodash.debounce";
 
 import { SEARCH_USER } from "../graphql/Query";
 import RepositoryList from "../components/RepositoryList";
@@ -9,7 +10,8 @@ import UserList from "../components/UserList";
 import { StateContext } from "../context/State";
 import paginationReducer, {
   initialState,
-} from "../reducers/pagination.reducer";
+} from "../reducers/pagination";
+import { DEBOUNCE_INTERVAL } from "../constants";
 
 const Home: FC = () => {
   const { user, setUser, reset } = useContext(StateContext);
@@ -20,8 +22,27 @@ const Home: FC = () => {
   );
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchTermInput, setSearchTermInput] = useState("");
 
-  const [searchUser, { data: userData, loading: userLoading }] = useLazyQuery(
+  const updateSearchTerm = useMemo(
+    () =>
+      debounce((query: string) => {
+        reset();
+        // userPaginationDispatch({ type: "reset" });
+        if (query && query.trim()) {
+          setSearchTerm(query);
+        }
+      }, DEBOUNCE_INTERVAL),
+    [setSearchTerm, reset],
+  );
+
+  const [
+    searchUser, {
+      data: userData,
+      loading: userLoading,
+      error: userError
+    }
+  ] = useLazyQuery(
     SEARCH_USER,
     {
       variables: {
@@ -54,42 +75,58 @@ const Home: FC = () => {
   };
 
   useEffect(() => {
-    if (!searchTerm) {
-      reset();
-    }
-  }, [searchTerm, reset]);
-
-  useEffect(() => {
     if (searchTerm) {
       searchUser();
     }
   }, [searchTerm, searchUser]);
 
+  // User view. instead of ternary, this is easier to read.
+  let userView = (
+    <div className="flex items-start justify-center mt-5">
+      <p className="text-black text-lg font-medium">Please search and select a user.</p>
+    </div>
+  );
+  if (userLoading) {
+    userView = (
+      <div className="flex items-center justify-center h-40">
+        <Spin tip="Getting users..." />
+      </div>
+    );
+  } else if (userData) {
+    userView = (
+      <div className="my-5">
+        <UserList
+          setUser={setUser}
+          userData={userData || []}
+          onPrev={onPrev}
+          onNext={onNext}
+          selectedUser={user}
+        />
+      </div>
+    );
+  } else if (userError) {
+    userView = (
+      <div className="flex items-start justify-center">
+        <p className="text-red-600">{userError.message || 'Something went wrong.'}</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-screen-xl mx-auto bg-gray-100 h-screen">
-      <SearchBar
-        searchTerm={searchTerm}
-        setSearchTerm={(search) => {
-          // When search changes move user to page 1.
-          userPaginationDispatch({ type: "reset" });
-          setSearchTerm(search);
-        }}
-      />
-      {userLoading && (
-        <div className="flex items-center justify-center h-40">
-          <Spin />
-        </div>
-      )}
-      {userData && !userLoading && (
-        <div className="my-5">
-          <UserList
-            setUser={setUser}
-            userData={userData || []}
-            onPrev={onPrev}
-            onNext={onNext}
-          />
-        </div>
-      )}
+    <div className="max-w-screen-xl mx-auto h-screen p-10">
+      <div className="flex items-center justify-center">
+        <SearchBar
+          className="w-1/2"
+          searchTerm={searchTermInput}
+          setSearchTerm={(search) => {
+            setSearchTermInput(search);
+            // When search changes move user to page 1.
+            userPaginationDispatch({ type: "reset" });
+            updateSearchTerm(search);
+          }}
+        />
+      </div>
+      {userView}
       {user && <RepositoryList />}
     </div>
   );

@@ -10,7 +10,7 @@ import { GET_REPOSITORIES } from "../graphql/Query";
 import { StateContext } from "../context/State";
 import paginationReducer, {
   initialState,
-} from "../reducers/pagination.reducer";
+} from "../reducers/pagination";
 
 import { IRepoItem } from "../interfaces";
 
@@ -32,7 +32,11 @@ const RepositoryList: FC = () => {
     initialState
   );
 
-  const { data: repositoryList, loading: repositoryLoading } = useQuery(
+  const {
+    data: repositoryList,
+    loading: repositoryLoading,
+    error: repositoryError
+  } = useQuery(
     GET_REPOSITORIES,
     {
       variables: {
@@ -63,55 +67,77 @@ const RepositoryList: FC = () => {
     });
   };
 
+  let repositoryView = null;
   if (repositoryLoading) {
-    return <Spin />;
-  }
-
-  return (
-    <div>
-      <div className="text-2xl font-bold">Repositories</div>
-      <List
-        dataSource={repositoryList?.user.repositories.nodes}
-        renderItem={({
-          name,
-          id,
-          stargazerCount,
-          watchers: { totalCount },
-        }: IRepoItem) => (
-          <Item
-            className="cursor-pointer"
-            onClick={() => {
-              setRepo(name);
-              setRepoId(id);
-              navigate("/issues");
-            }}
-            key={name}
-            actions={[
-              <IconText
-                icon={StarOutlined}
-                text={stargazerCount.toString()}
-                key="list-vertical-star-o"
-              />,
-              <IconText
-                icon={EyeOutlined}
-                text={totalCount.toString()}
-                key="list-vertical-like-o"
-              />,
-            ]}
-          >
-            <div className="text-base font-semibold">{name}</div>
-          </Item>
-        )}
-      />
-      <div className="my-4 mr-4">
-        {repositoryList?.user.repositories.nodes?.length ? (
+    repositoryView = (
+      <div className="h-full w-full flex items-center justify-center">
+        <Spin tip="Getting repositories..." />
+      </div>
+    );
+  } else if (repositoryList) {
+    repositoryView = (
+      <>
+        <List
+          dataSource={repositoryList.user.repositories.nodes}
+          renderItem={({
+            name,
+            id,
+            stargazerCount,
+            watchers: { totalCount },
+          }: IRepoItem) => (
+            <Item
+              className="cursor-pointer"
+              onClick={() => {
+                setRepo(name);
+                setRepoId(id);
+                navigate("/issues");
+              }}
+              key={name}
+              actions={[
+                <IconText
+                  icon={StarOutlined}
+                  text={stargazerCount.toString()}
+                  key="list-vertical-star-o"
+                />,
+                <IconText
+                  icon={EyeOutlined}
+                  text={totalCount.toString()}
+                  key="list-vertical-like-o"
+                />,
+              ]}
+            >
+              <div className="text-base font-semibold">{name}</div>
+            </Item>
+          )}
+        />
+        <div className="my-4 mr-4">
           <Pagination
             pageInfo={repositoryList?.user?.repositories?.pageInfo}
             onPrev={onPrev}
             onNext={onNext}
           />
+        </div>
+      </>
+    );
+  } else if (repositoryError) {
+    repositoryView = (
+      <div className="h-full w-full flex items-center justify-center">
+        <p className="text-red-600">{repositoryError.message || 'Something went wrong,'}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="flex space-x-3 items-center mb-4">
+        <h4 className="font-semibold text-3xl">Repositories</h4>
+        { repositoryList ? (
+          <span className="text-xl font-medium rounded-full h-10 w-10 flex items-center justify-center bg-yellow-500 text-black">
+            {repositoryList.user.repositories.totalCount}
+          </span>
         ) : null}
       </div>
+      {repositoryView}
     </div>
   );
 };
