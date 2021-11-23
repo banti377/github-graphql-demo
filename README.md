@@ -1,3 +1,13 @@
+# Setup Instructions
+- clone this repository by running `git clone git@github.com:banti377/github-graphql-demo.git`
+  - If you don't use SSH feel free to use other methods to clone.
+- cd into `github-graphql-demo` directory.
+- run `yarn` or `yarn install` to install all the required dependencies.
+- create `.env` file in root of the project, replicate `.env.example`
+  - use personal github OAuth token.
+- run `yarn start` to start the development server.
+- go to `http://localhost:3000`
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
