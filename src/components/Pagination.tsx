@@ -1,31 +1,35 @@
-import { FC } from "react";
-import { CaretLeftOutlined, CaretRightOutlined } from "@ant-design/icons";
 import { Button } from "antd";
+import { CaretLeftOutlined, CaretRightOutlined } from "@ant-design/icons";
+import { FC } from "react";
 
 interface Props {
   pageInfo: {
     hasNextPage: boolean;
     hasPreviousPage: boolean;
   };
-  onPrevClick: () => void;
-  onNextClick: () => void;
+  onPrev: () => void;
+  onNext: () => void;
 }
 
-const Pagination: FC<Props> = ({ pageInfo, onPrevClick, onNextClick }) => {
+const Pagination: FC<Props> = ({
+  pageInfo: { hasNextPage, hasPreviousPage },
+  onNext,
+  onPrev,
+}) => {
   return (
     <div className="flex space-x-4 justify-end">
       <Button
-        disabled={!pageInfo.hasPreviousPage}
+        disabled={!hasPreviousPage}
         className="items-center flex"
-        onClick={onPrevClick}
+        onClick={onPrev}
       >
         <CaretLeftOutlined />
         Prev
       </Button>
       <Button
-        disabled={!pageInfo.hasNextPage}
+        disabled={!hasNextPage}
         className="items-center flex"
-        onClick={onNextClick}
+        onClick={onNext}
       >
         Next
         <CaretRightOutlined />

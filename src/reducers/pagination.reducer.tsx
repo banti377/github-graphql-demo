@@ -1,5 +1,6 @@
 import { Reducer } from "react";
-import { paginationConstants } from "../constants/pagination.contants";
+
+import { paginationConstants } from "../constants";
 
 interface PaginationState {
   after: string | null;
@@ -24,30 +25,30 @@ const reducer: Reducer<PaginationState, ACTIONTYPE> = (state, action) => {
   const { type } = action;
 
   switch (type) {
-    case 'next':
+    case "next":
       return {
         after: action.payload.after,
         first: paginationConstants.pageSize,
         last: null,
         before: null,
-      }
+      };
 
-    case 'prev':
+    case "prev":
       return {
         after: null,
         first: null,
         last: paginationConstants.pageSize,
         before: action.payload.before,
-      }
+      };
 
-    case 'reset':
+    case "reset":
       return {
         ...initialState,
-      }
-  
+      };
+
     default:
       throw new Error(`action type ${type} is nto valid action type.`);
   }
-}
+};
 
 export default reducer;

@@ -1,4 +1,5 @@
 import { createContext, FC, useReducer } from "react";
+
 import { Action, IInitialState } from "../interfaces";
 
 const initialState = {
@@ -8,6 +9,7 @@ const initialState = {
   setRepo: (repo: string) => {},
   repoId: "",
   setRepoId: (repoId: string) => {},
+  reset: () => {},
 };
 
 export const StateContext = createContext(initialState);
@@ -20,6 +22,8 @@ const authReducer = (state: IInitialState, action: Action): IInitialState => {
       return { ...state, repo: action.payload };
     case "repoId":
       return { ...state, repoId: action.payload };
+    case "reset":
+      return { ...state, user: "", repo: "", repoId: "" };
     default:
       return state;
   }
@@ -35,6 +39,8 @@ export const StateProvider: FC = (props) => {
   const setRepoId = (repoId: string) =>
     dispatch({ type: "repoId", payload: repoId });
 
+  const reset = () => dispatch({ type: "reset" });
+
   return (
     <StateContext.Provider
       value={{
@@ -44,6 +50,7 @@ export const StateProvider: FC = (props) => {
         setUser,
         setRepo,
         setRepoId,
+        reset,
       }}
       {...props}
     />
