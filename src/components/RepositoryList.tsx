@@ -1,56 +1,66 @@
 import { useQuery } from "@apollo/client";
 import { List, Space, Spin } from "antd";
-import React, { useContext, useState } from "react";
+import React, { useReducer, useContext } from "react";
 import { FC } from "react";
 import { EyeOutlined, StarOutlined } from "@ant-design/icons";
-
-import { GET_REPOSITORIES } from "../graphql/Query";
 import { useNavigate } from "react-router-dom";
-import { StateContext } from "../context/State";
+
 import Pagination from "../components/Pagination";
+import { GET_REPOSITORIES } from "../graphql/Query";
+import { StateContext } from "../context/State";
+import paginationReducer, {
+  initialState,
+} from "../reducers/pagination.reducer";
+
+import { IRepoItem } from "../interfaces";
 
 const { Item } = List;
 
 const IconText = ({ icon, text }: { icon: any; text: string }) => (
-  <Space align="end">
-    {React.createElement(icon)}
-    {text}
+  <Space align="end" className="text-base font-semibold flex items-center">
+    <div>{React.createElement(icon)}</div>
+    <div>{text}</div>
   </Space>
 );
 
 const RepositoryList: FC = () => {
   const { user, setRepoId, setRepo } = useContext(StateContext);
-
-  const [after, setAfter] = useState<string | null>(null);
-  const [before, setBefore] = useState<string | null>(null);
-
-  console.log({ user });
-
   const navigate = useNavigate();
 
-  const {
-    data: repositoryList,
-    loading: repositoryLoading,
-    refetch: refetchRepositories,
-  } = useQuery(GET_REPOSITORIES, {
-    variables: {
-      login: user,
-      first: 10,
-      after,
-      before,
-    },
-  });
+  const [repoPagiantion, repoPaginationDispatch] = useReducer(
+    paginationReducer,
+    initialState
+  );
 
-  const onPrevClick = () => {
-    setBefore(repositoryList?.user?.repositories?.pageInfo?.startCursor);
-    setAfter(null);
-    refetchRepositories();
+  const { data: repositoryList, loading: repositoryLoading } = useQuery(
+    GET_REPOSITORIES,
+    {
+      variables: {
+        login: user,
+        first: repoPagiantion.first,
+        after: repoPagiantion.after,
+        before: repoPagiantion.before,
+        last: repoPagiantion.last,
+      },
+    }
+  );
+
+  const onPrev = () => {
+    repoPaginationDispatch({
+      type: "prev",
+      payload: {
+        before: repositoryList.user.repositories.pageInfo.startCursor,
+      },
+    });
   };
 
-  const onNextClick = () => {
-    setBefore(null);
-    setAfter(repositoryList?.user?.repositories?.pageInfo?.endCursor);
-    refetchRepositories();
+  const onNext = () => {
+    repoPaginationDispatch({
+      type: "next",
+      payload: {
+        after: repositoryList.user.repositories.pageInfo.endCursor,
+      },
+    });
   };
 
   if (repositoryLoading) {
@@ -58,43 +68,51 @@ const RepositoryList: FC = () => {
   }
 
   return (
-    <>
+    <div>
+      <div className="text-2xl font-bold">Repositories</div>
       <List
-        header={<div>Repositories</div>}
         dataSource={repositoryList?.user.repositories.nodes}
-        renderItem={(item: any) => (
+        renderItem={({
+          name,
+          id,
+          stargazerCount,
+          watchers: { totalCount },
+        }: IRepoItem) => (
           <Item
+            className="cursor-pointer"
             onClick={() => {
-              setRepo(item.name);
-              setRepoId(item.id);
+              setRepo(name);
+              setRepoId(id);
               navigate("/issues");
             }}
-            key={item.name}
+            key={name}
             actions={[
               <IconText
                 icon={StarOutlined}
-                text={item?.stargazerCount}
+                text={stargazerCount.toString()}
                 key="list-vertical-star-o"
               />,
               <IconText
                 icon={EyeOutlined}
-                text={item?.watchers?.totalCount}
+                text={totalCount.toString()}
                 key="list-vertical-like-o"
               />,
             ]}
           >
-            {item.name}
+            <div className="text-base font-semibold">{name}</div>
           </Item>
         )}
       />
-      {repositoryList?.user.repositories.nodes && (
-        <Pagination
-          onNextClick={onNextClick}
-          onPrevClick={onPrevClick}
-          pageInfo={repositoryList?.user?.repositories?.pageInfo}
-        />
-      )}
-    </>
+      <div className="my-4 mr-4">
+        {repositoryList?.user.repositories.nodes?.length ? (
+          <Pagination
+            pageInfo={repositoryList?.user?.repositories?.pageInfo}
+            onPrev={onPrev}
+            onNext={onNext}
+          />
+        ) : null}
+      </div>
+    </div>
   );
 };
 

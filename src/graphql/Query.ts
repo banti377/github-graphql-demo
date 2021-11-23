@@ -5,6 +5,7 @@ export const SEARCH_USER = gql`
     $query: String!
     $type: SearchType!
     $first: Int
+    $last: Int
     $after: String
     $before: String
   ) {
@@ -12,6 +13,7 @@ export const SEARCH_USER = gql`
       query: $query
       type: $type
       first: $first
+      last: $last
       after: $after
       before: $before
     ) {
@@ -42,9 +44,10 @@ export const GET_REPOSITORIES = gql`
     $first: Int
     $after: String
     $before: String
+    $last: Int
   ) {
     user(login: $login) {
-      repositories(first: $first, after: $after, before: $before) {
+      repositories(first: $first, after: $after, before: $before, last: $last) {
         totalCount
         pageInfo {
           hasNextPage
@@ -74,9 +77,10 @@ export const GET_ISSUES = gql`
     $first: Int
     $after: String
     $before: String
+    $last: Int
   ) {
     repository(name: $name, owner: $owner) {
-      issues(first: $first, after: $after, before: $before) {
+      issues(first: $first, after: $after, before: $before, last: $last) {
         totalCount
         pageInfo {
           hasNextPage

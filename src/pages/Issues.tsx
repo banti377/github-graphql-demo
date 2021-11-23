@@ -1,25 +1,35 @@
-import { PlusOutlined } from "@ant-design/icons";
+import { PlusOutlined, ArrowLeftOutlined } from "@ant-design/icons";
 import { useMutation, useQuery } from "@apollo/client";
 import { Button, Form, List, Spin } from "antd";
 import moment from "moment";
-import { useContext, useState } from "react";
+import { useContext, useEffect, useReducer, useState } from "react";
 import { FC } from "react";
+import { useNavigate } from "react-router-dom";
+
 import { StateContext } from "../context/State";
 import { CREATE_ISSUE } from "../graphql/Mutation";
 import { GET_ISSUES } from "../graphql/Query";
-import Pagination from "../components/Pagination";
 import CreateIssue from "../components/CreateIssue";
-import { IITem } from "../interfaces";
+import paginationReducer, {
+  initialState,
+} from "../reducers/pagination.reducer";
+import Pagination from "../components/Pagination";
+
+import { IIssueITem } from "../interfaces";
 
 const { Item } = List;
 
 const Issues: FC = () => {
-  const { repo, user, repoId } = useContext(StateContext);
+  const { repo, user, repoId, reset } = useContext(StateContext);
 
+  const navigate = useNavigate();
+
+  const [issuePagination, issuePaginationDispatch] = useReducer(
+    paginationReducer,
+    initialState
+  );
   const [form] = Form.useForm();
 
-  const [after, setAfter] = useState<string | null>(null);
-  const [before, setBefore] = useState<string | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
 
   const {
@@ -30,9 +40,10 @@ const Issues: FC = () => {
     variables: {
       name: repo,
       owner: user,
-      first: 10,
-      after,
-      before,
+      first: issuePagination.first,
+      after: issuePagination.after,
+      before: issuePagination.before,
+      last: issuePagination.last,
     },
   });
 
@@ -51,9 +62,13 @@ const Issues: FC = () => {
           title,
           body: description,
         },
-      });
-      refetchIssues();
-      setIsModalVisible(false);
+      })
+        .then(() => {
+          refetchIssues();
+          setIsModalVisible(false);
+          form.resetFields();
+        })
+        .catch((err) => console.log(err));
     }
   };
 
@@ -61,17 +76,34 @@ const Issues: FC = () => {
     setIsModalVisible(false);
   };
 
-  const onPrevClick = () => {
-    setBefore(issueList?.repository?.issues?.pageInfo?.startCursor);
-    setAfter(null);
-    refetchIssues();
+  const onPrev = () => {
+    issuePaginationDispatch({
+      type: "prev",
+      payload: {
+        before: issueList.repository.issues.pageInfo.startCursor,
+      },
+    });
   };
 
-  const onNextClick = () => {
-    setBefore(null);
-    setAfter(issueList?.repository?.issues?.pageInfo?.endCursor);
-    refetchIssues();
+  const onNext = () => {
+    issuePaginationDispatch({
+      type: "next",
+      payload: {
+        after: issueList.repository.issues.pageInfo.endCursor,
+      },
+    });
   };
+
+  const onBack = () => {
+    reset();
+    navigate("/");
+  };
+
+  useEffect(() => {
+    if (!repo) {
+      navigate("/", { replace: true });
+    }
+  }, [repo, navigate]);
 
   if (issueLoading) {
     return <Spin />;
@@ -79,6 +111,9 @@ const Issues: FC = () => {
 
   return (
     <div className="max-w-screen-xl mx-auto bg-gray-100 h-screen">
+      <div className="flex items-center text-base mb-4">
+        <ArrowLeftOutlined onClick={onBack} className="mr-2" /> Go Back
+      </div>
       <div className="font-extrabold text-2xl mb-4">{repo}</div>
       <div className="flex justify-between">
         <div className="text-xl font-semibold">Open Issues</div>
@@ -88,7 +123,7 @@ const Issues: FC = () => {
       </div>
       <List
         dataSource={issueList?.repository?.issues?.nodes}
-        renderItem={({ title, createdAt, author: { login } }: IITem) => (
+        renderItem={({ title, createdAt, author: { login } }: IIssueITem) => (
           <Item className="pt-5 text-md font-semibold" key={title}>
             <div>{title}</div>
             <div>
@@ -97,13 +132,13 @@ const Issues: FC = () => {
           </Item>
         )}
       />
-      {issueList?.repository?.issues?.nodes && (
+      {issueList?.repository?.issues?.nodes?.length ? (
         <Pagination
-          onNextClick={onNextClick}
-          onPrevClick={onPrevClick}
-          pageInfo={issueList?.repository?.issues?.pageInfo}
+          pageInfo={issueList.repository.issues.pageInfo}
+          onNext={onNext}
+          onPrev={onPrev}
         />
-      )}
+      ) : null}
       <CreateIssue
         isModalVisible={isModalVisible}
         handleCancel={handleCancel}

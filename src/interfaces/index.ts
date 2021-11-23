@@ -5,13 +5,38 @@ export interface IInitialState {
   setRepo: (repo: string) => void;
   repoId: string;
   setRepoId: (repoId: string) => void;
+  reset: () => void;
 }
 
-export interface IITem {
+export interface IUser {
+  node: {
+    login: string;
+    avatarUrl: string;
+    name: string;
+  };
+}
+
+export interface IUserData {
+  search: {
+    edges: [node: IUser];
+    pageInfo: { hasNextPage: boolean; hasPreviousPage: boolean };
+  };
+}
+
+export interface IIssueITem {
   title: string;
   createdAt: Date;
   author: {
     login: string;
+  };
+}
+
+export interface IRepoItem {
+  name: string;
+  id: string;
+  stargazerCount: number;
+  watchers: {
+    totalCount: number;
   };
 }
 
@@ -30,4 +55,8 @@ interface IRepoIdAction {
   payload: string;
 }
 
-export type Action = IUserAction | IRepoAction | IRepoIdAction;
+interface IResetAction {
+  type: "reset";
+}
+
+export type Action = IUserAction | IRepoAction | IRepoIdAction | IResetAction;
